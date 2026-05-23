@@ -18,8 +18,8 @@ const int rightPin = 7;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // === Wi-Fi credentials ===
-const char* ssid = "WIFI NAME";
-const char* password = "PASSWORD";
+const char* ssid = "EgorNet";
+const char* password = "002200zxc";
 
 // === Server ===
 AsyncWebServer server(80);
@@ -82,10 +82,16 @@ void playAnimation60fps() {
 void showMessage(const char* line1, const char* line2 = "") {
   display.clearDisplay();
   display.setTextSize(1);
-  display.setCursor(0,0);
+  display.setCursor(0, 0);
   display.println(line1);
   if (line2[0] != '\0') display.println(line2);
   display.display();
+}
+
+void showConnectedUrl() {
+  String url = "http://" + WiFi.localIP().toString() + "/";
+  showMessage("Connect to:", url.c_str());
+  Serial.println(url);
 }
 
 // === Setup ===
@@ -101,9 +107,15 @@ void setup() {
   display.setTextColor(SSD1306_WHITE);
 
   WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED){
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println();
+  Serial.println(WiFi.localIP());
 
   // === Web UI ===
- server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     String html = "<html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'>";
     html += "<style>";
     html += "body { font-family: sans-serif; text-align: center; margin:0; padding:0; background:#111; color:white; }";
@@ -116,36 +128,94 @@ void setup() {
     html += "<div class='btn' onclick='fetch(\"/start\")'>Start</div>";
 
     html += "<p>Hold buttons to drive:</p>";
+    html += "<script>";
+    html += "function hold(path){fetch(path);}";
+    html += "function bindHold(id,onPath,offPath){";
+    html += "var el=document.getElementById(id);";
+    html += "var press=function(e){e.preventDefault();hold(onPath);};";
+    html += "var release=function(e){e.preventDefault();hold(offPath);};";
+    html += "el.addEventListener('touchstart',press,{passive:false});";
+    html += "el.addEventListener('touchend',release,{passive:false});";
+    html += "el.addEventListener('mousedown',press);";
+    html += "el.addEventListener('mouseup',release);";
+    html += "el.addEventListener('mouseleave',release);";
+    html += "}";
+    html += "</script>";
 
-    // Mobile-friendly hold buttons, stacked vertically
-    html += "<div class='btn' ontouchstart='fetch(\"/backward/on\")' ontouchend='fetch(\"/backward/off\")'>Forward</div>";
-    html += "<div class='btn' ontouchstart='fetch(\"/forward/on\")' ontouchend='fetch(\"/forward/off\")'>Backward</div>";
-    html += "<div class='btn' ontouchstart='fetch(\"/left/on\")' ontouchend='fetch(\"/left/off\")'>Left</div>";
-    html += "<div class='btn' ontouchstart='fetch(\"/right/on\")' ontouchend='fetch(\"/right/off\")'>Right</div>";
-    html += "<div class='btn' ontouchstart='fetch(\"/wiggle/on\")' ontouchend='fetch(\"/wiggle/off\")'>Wiggle</div>";
+    html += "<div id='fwd' class='btn'>Forward</div>";
+    html += "<div id='back' class='btn'>Backward</div>";
+    html += "<div id='left' class='btn'>Left</div>";
+    html += "<div id='right' class='btn'>Right</div>";
+    html += "<div id='wiggle' class='btn'>Wiggle</div>";
+    html += "<script>";
+    html += "bindHold('fwd','/forward/on','/forward/off');";
+    html += "bindHold('back','/backward/on','/backward/off');";
+    html += "bindHold('left','/left/on','/left/off');";
+    html += "bindHold('right','/right/on','/right/off');";
+    html += "bindHold('wiggle','/wiggle/on','/wiggle/off');";
+    html += "</script>";
 
     html += "</body></html>";
     request->send(200, "text/html", html);
 });
 
 
-  // Start button
-  server.on("/start", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/start", HTTP_GET, [](AsyncWebServerRequest *request) {
     started = true;
+    Serial.println("WEB: /start");
     request->send(200, "text/plain", "Started!");
   });
 
-  // Control routes
-  server.on("/forward/on", HTTP_GET, [](AsyncWebServerRequest *request){ forwardActive = true; request->send(200,"text/plain","ok");});
-  server.on("/forward/off", HTTP_GET, [](AsyncWebServerRequest *request){ forwardActive = false; request->send(200,"text/plain","ok");});
-  server.on("/backward/on", HTTP_GET, [](AsyncWebServerRequest *request){ backwardActive = true; request->send(200,"text/plain","ok");});
-  server.on("/backward/off", HTTP_GET, [](AsyncWebServerRequest *request){ backwardActive = false; request->send(200,"text/plain","ok");});
-  server.on("/left/on", HTTP_GET, [](AsyncWebServerRequest *request){ leftActive = true; request->send(200,"text/plain","ok");});
-  server.on("/left/off", HTTP_GET, [](AsyncWebServerRequest *request){ leftActive = false; request->send(200,"text/plain","ok");});
-  server.on("/right/on", HTTP_GET, [](AsyncWebServerRequest *request){ rightActive = true; request->send(200,"text/plain","ok");});
-  server.on("/right/off", HTTP_GET, [](AsyncWebServerRequest *request){ rightActive = false; request->send(200,"text/plain","ok");});
-  server.on("/wiggle/on", HTTP_GET, [](AsyncWebServerRequest *request){ wiggleActive = true; request->send(200,"text/plain","ok");});
-  server.on("/wiggle/off", HTTP_GET, [](AsyncWebServerRequest *request){ wiggleActive = false; request->send(200,"text/plain","ok");});
+  server.on("/forward/on", HTTP_GET, [](AsyncWebServerRequest *request) {
+    forwardActive = true;
+    Serial.println("WEB: forward ON");
+    request->send(200, "text/plain", "ok");
+  });
+  server.on("/forward/off", HTTP_GET, [](AsyncWebServerRequest *request) {
+    forwardActive = false;
+    Serial.println("WEB: forward OFF");
+    request->send(200, "text/plain", "ok");
+  });
+  server.on("/backward/on", HTTP_GET, [](AsyncWebServerRequest *request) {
+    backwardActive = true;
+    Serial.println("WEB: backward ON");
+    request->send(200, "text/plain", "ok");
+  });
+  server.on("/backward/off", HTTP_GET, [](AsyncWebServerRequest *request) {
+    backwardActive = false;
+    Serial.println("WEB: backward OFF");
+    request->send(200, "text/plain", "ok");
+  });
+  server.on("/left/on", HTTP_GET, [](AsyncWebServerRequest *request) {
+    leftActive = true;
+    Serial.println("WEB: left ON");
+    request->send(200, "text/plain", "ok");
+  });
+  server.on("/left/off", HTTP_GET, [](AsyncWebServerRequest *request) {
+    leftActive = false;
+    Serial.println("WEB: left OFF");
+    request->send(200, "text/plain", "ok");
+  });
+  server.on("/right/on", HTTP_GET, [](AsyncWebServerRequest *request) {
+    rightActive = true;
+    Serial.println("WEB: right ON");
+    request->send(200, "text/plain", "ok");
+  });
+  server.on("/right/off", HTTP_GET, [](AsyncWebServerRequest *request) {
+    rightActive = false;
+    Serial.println("WEB: right OFF");
+    request->send(200, "text/plain", "ok");
+  });
+  server.on("/wiggle/on", HTTP_GET, [](AsyncWebServerRequest *request) {
+    wiggleActive = true;
+    Serial.println("WEB: wiggle ON");
+    request->send(200, "text/plain", "ok");
+  });
+  server.on("/wiggle/off", HTTP_GET, [](AsyncWebServerRequest *request) {
+    wiggleActive = false;
+    Serial.println("WEB: wiggle OFF");
+    request->send(200, "text/plain", "ok");
+  });
 
   server.begin();
 }
@@ -154,19 +224,22 @@ void setup() {
 void loop() {
   if (!started) {
     if (WiFi.status() == WL_CONNECTED) {
-      char urlStr[32];
-      sprintf(urlStr, "http://%s/", WiFi.localIP().toString().c_str());
-      showMessage("Connect to:", urlStr);
+      showConnectedUrl();
     } else {
       showMessage("No connection");
+      Serial.println("Wi-Fi disconnected");
     }
+    updateCar();
     delay(500);
-  } else {
-    if (WiFi.status() == WL_CONNECTED) {
-      playAnimation60fps(); // animation + non-blocking drive updates
-    } else {
-      showMessage("Wi-Fi lost!");
-      delay(500);
-    }
+    return;
   }
+
+  if (WiFi.status() != WL_CONNECTED) {
+    showMessage("Wi-Fi lost!");
+    Serial.println("Wi-Fi lost");
+    delay(500);
+    return;
+  }
+
+  playAnimation60fps();
 }
