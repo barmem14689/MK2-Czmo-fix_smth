@@ -18,8 +18,8 @@ const int rightPin = 7;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 // === Wi-Fi credentials ===
-const char* ssid = "EgorNet";
-const char* password = "002200zxc";
+const char* ssid = "YOUR_SSID";
+const char* password = "YOUR_PASS";
 
 // === Server ===
 AsyncWebServer server(80);
