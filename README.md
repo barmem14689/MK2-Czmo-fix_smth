@@ -28,9 +28,8 @@ Based on [nturmose21/MK2-Czmo](https://github.com/nturmose21/MK2-Czmo) — this 
 | Mode | When | How to connect |
 |------|------|----------------|
 | **STA** (default) | Home Wi-Fi OK within ~20 s | Same network as robot → `http://<STA-IP>/` |
-| **AP fallback** | STA failed | Join Wi-Fi **`Cozmo-MK2`**, password **`cozmo1234`** → `http://192.168.4.1/` |
 
-Change AP name/password in sketch: `apSsid`, `apPassword`.
+enter your ssid and pass in const char* ssid and const char* password
 
 
 ## Project files
