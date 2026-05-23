@@ -32,11 +32,6 @@ Based on [nturmose21/MK2-Czmo](https://github.com/nturmose21/MK2-Czmo) — this 
 
 Change AP name/password in sketch: `apSsid`, `apPassword`.
 
-### Web UI language
-
-On the control page use **RU** / **EN** (saved in browser `localStorage`).
-
----
 
 ## Project files
 
